@@ -1,18 +1,185 @@
+/* --- Tailwind v4 imports --- */
 @import "tailwindcss/preflight";
+@import "tailwindcss/theme";
 @import "tailwindcss/utilities";
 
-@import "@fontsource/merriweather";
-@import "@fontsource/oswald";
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Gudea:wght@400;700&family=Oswald:wght@700&family=Merriweather:wght@300;400;700&display=swap');
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Ensure UA honors both color schemes */
+:root { color-scheme: light dark; }
+
+/* --- Custom Siena Theme --- */
+@theme {
+  /* Light mode tokens (default) */
+  --color-siena-green: #006B54;
+  --color-siena-darkGreen: #1B4932;
+  --color-siena-gold: #FCC917;
+  --color-siena-white: #FFFFFF;
+  --color-siena-bg: #F5F5F2;
+
+  /* Fonts */
+  --font-sans: "Gudea", sans-serif;
+  --font-serif: "Merriweather", serif;
+  --font-display: "Oswald", sans-serif;
+
+  /* Sizes used in classes you already use */
+  --spacing-60: 15rem; /* for w-60 */
+  --spacing-6: 1.5rem; /* for p-6 */
+}
+
+/* Dark mode tokens when .dark is on <html>.
+   This lets your existing brand utilities adapt automatically. */
+.dark {
+  @theme {
+    --color-siena-green: #00795e;
+    --color-siena-darkGreen: #0f2e23;
+    --color-siena-gold: #d4a80f;
+    --color-siena-white: #FFFFFF;
+    --color-siena-bg: #1b1b1b;
+  }
+}
+
+/* Also respect system preference even if user hasn't toggled manually. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.dark):not(.light) {
+    /* Mirror the same dark tokens when user has not explicitly chosen */
+    --color-siena-green: #00795e;
+    --color-siena-darkGreen: #0f2e23;
+    --color-siena-gold: #d4a80f;
+    --color-siena-white: #FFFFFF;
+    --color-siena-bg: #121212;
+  }
+}
+
+/* --- Global body --- */
+body {
+  @apply bg-siena-bg text-siena-darkGreen font-serif m-0;
+}
+
+/* When .dark is set, ensure body text uses your gold by default */
+.dark body {
+  @apply bg-siena-bg text-siena-gold;
+}
+
+/* --- Typography --- */
+h1, h2, h3 {
+  @apply font-display text-siena-green;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  @apply bg-siena-darkGreen text-siena-white flex flex-col w-60 min-h-screen p-6;
+}
+
+.sidebar h2 {
+  @apply text-siena-gold font-display uppercase tracking-wide mb-8;
+}
+
+.sidebar a {
+  @apply block text-siena-white no-underline py-2 transition-all duration-200 ease-in-out;
+}
+
+.sidebar a:hover {
+  @apply text-siena-gold;
+}
+
+.sidebar a.active {
+  @apply text-siena-gold font-semibold;
+}
+
+/* --- Main content --- */
+.main-content {
+  @apply flex-1 p-10 bg-siena-white overflow-y-auto;
+}
+
+/* --- Siena Brand Enhancements --- */
+
+/* Buttons */
+.btn-primary,
+.ant-btn-primary {
+  @apply bg-siena-green border-siena-green text-siena-white font-sans;
+}
+.btn-primary:hover,
+.ant-btn-primary:hover {
+  @apply bg-siena-darkGreen border-siena-darkGreen;
+}
+
+/* Secondary / Default Buttons */
+.btn-secondary,
+.ant-btn-default {
+  @apply border-siena-green text-siena-green font-sans;
+}
+.btn-secondary:hover,
+.ant-btn-default:hover {
+  @apply border-siena-darkGreen text-siena-darkGreen;
+}
+
+/* Table Headers */
+.ant-table-thead > tr > th {
+  @apply bg-siena-bg text-siena-darkGreen font-sans font-semibold;
+}
+
+/* Table Rows */
+.ant-table-tbody > tr:hover > td {
+  @apply bg-siena-gold/10;
+}
+
+/* Input fields, selects, date pickers */
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+  @apply border-siena-green font-sans;
+}
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  @apply border-siena-darkGreen ring-1 ring-siena-darkGreen;
+}
+
+/* Drawers / side panels */
+.ant-drawer-header {
+  @apply bg-siena-green text-siena-white font-display;
+}
+.ant-drawer-title {
+  @apply text-siena-white;
+}
+
+/* Headings & layout titles */
+.page-title {
+  @apply text-siena-green font-display uppercase tracking-wide mb-4;
+}
+
+/* Misc: Tag colors, highlights */
+.ant-tag {
+  @apply bg-siena-bg text-siena-darkGreen border-siena-green;
+}
+.ant-tag:hover {
+  @apply bg-siena-gold text-siena-green;
+}
+
+/* --- Siena Status Tags --- */
+.status {
+  @apply inline-block px-3 py-1 text-sm font-sans border rounded-md;
+}
+
+.status-requested       { @apply bg-white border-gray-300 text-gray-600; }
+.status-ordered         { @apply bg-orange-100 border-orange-400 text-orange-700; }
+.status-partial         { @apply bg-purple-100 border-purple-400 text-purple-700; }
+.status-received        { @apply bg-purple-200 border-purple-600 text-purple-800; }
+.status-invoice-sent    { @apply bg-sky-100 border-sky-400 text-sky-700; }
+.status-invoice-received{ @apply bg-sky-200 border-sky-600 text-sky-800; }
+.status-paid            { @apply bg-green-100 border-green-500 text-green-700; }
+.status-cancelled       { @apply bg-red-100 border-red-500 text-red-700; }
+
+/* Dark tweaks so tags don’t wash out */
+.dark .status {
+  filter: brightness(0.95);
+}
+
+/* Keep Ant surfaces dark-friendly when toggled */
+.dark .ant-layout,
+.dark .ant-drawer {
+  background-color: var(--color-siena-bg) !important;
 }

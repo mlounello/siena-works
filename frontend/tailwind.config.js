@@ -1,19 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx,ts,tsx}"
+  ],
   theme: {
     extend: {
       colors: {
-        sienagreen: "#006B54",
-        darkgreen: "#1B4932",
-        gold: "#FCC917",
-        offwhite: "#f8f8f8",
+        "siena-green": "#006B54",
+        "siena-darkGreen": "#1B4932",
+        "siena-gold": "#FCC917",
+        "siena-white": "#FFFFFF",
+        "siena-bg": "#F5F5F2",
       },
       fontFamily: {
+        sans: ["Gudea", "sans-serif"],
         serif: ["Merriweather", "serif"],
-        sans: ["Oswald", "sans-serif"],
+        display: ["Oswald", "sans-serif"],
       },
     },
   },
   plugins: [],
-}
+};

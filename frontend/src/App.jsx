@@ -1,23 +1,56 @@
-import { Button } from "./components/ui/button"
-import { Input } from "./components/ui/input"
-import { Select } from "./components/ui/select"
-import { Card } from "./components/ui/card"
+import { Outlet, NavLink } from "react-router-dom";
+import { useEffect } from "react";
 
 export default function App() {
+  useEffect(() => {
+    // Follow system color scheme automatically
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateTheme = () => {
+      document.documentElement.classList.toggle("dark", mq.matches);
+    };
+    updateTheme();
+    mq.addEventListener("change", updateTheme);
+    return () => mq.removeEventListener("change", updateTheme);
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-offwhite p-6 text-darkgreen">
-      <Card className="max-w-md w-full">
-        <h1 className="text-2xl font-serif mb-4 text-sienagreen">SienaWorks UI Test</h1>
-        <Input placeholder="Sample Input" />
-        <Select className="w-full mt-3">
-          <option>Option A</option>
-          <option>Option B</option>
-        </Select>
-        <div className="flex gap-3 mt-4">
-          <Button>Default</Button>
-          <Button variant="outline">Outline</Button>
-        </div>
-      </Card>
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-60 bg-siena-darkGreen text-siena-white flex flex-col p-6">
+        <h2 className="text-siena-gold font-display tracking-wider mb-8 text-xl">
+          SienaWorks
+        </h2>
+        <nav className="flex-1">
+          {[
+            { path: "/orders", label: "Orders" },
+            { path: "/", label: "Departments" },
+            { path: "/accounts", label: "Accounts" },
+            { path: "/vendors", label: "Vendors" },
+          ].map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                `block px-3 py-2 rounded-md mb-2 transition-colors duration-150 ${
+                  isActive
+                    ? "bg-siena-gold text-siena-darkGreen font-semibold"
+                    : "hover:bg-siena-green hover:text-siena-gold"
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+        <footer className="text-xs opacity-70 mt-auto">
+          <p>© {new Date().getFullYear()} Siena University</p>
+        </footer>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 bg-white dark:bg-siena-bg text-siena-darkGreen dark:text-siena-gold p-6">
+        <Outlet />
+      </main>
     </div>
-  )
+  );
 }
