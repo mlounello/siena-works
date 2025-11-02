@@ -1,63 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 export default function DrawerWrapper({
   title,
   children,
+  isOpen,
   onClose,
   onSave,
-  isOpen,
-  data = {},
-  editedData = {},
+  hasChanges = true,
 }) {
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    const changed =
-      Object.keys(editedData).some(
-        (key) => editedData[key] !== data[key]
-      ) && Object.keys(editedData).length > 0;
-    setHasChanges(changed);
-  }, [editedData, data]);
+  if (!isOpen) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 transition-all duration-300 ${
-        isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-      }`}
-    >
-      {/* Background Overlay */}
-      <div
-        className="absolute inset-0 bg-black/40 dark:bg-black/60"
-        onClick={onClose}
-      ></div>
-
-      {/* Drawer Panel */}
-      <div
-        className={`absolute right-0 top-0 h-full w-[400px] p-6 flex flex-col
-          bg-white text-siena-darkGreen shadow-xl transition-transform duration-300
-          dark:bg-siena-darkGreen dark:text-siena-gold
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-        `}
-      >
-        {/* Header */}
-        <header className="flex justify-between items-center mb-4 border-b border-siena-green/30 pb-2">
-          <h2 className="font-display text-lg tracking-wide">{title}</h2>
+    <div className="fixed inset-0 flex justify-end bg-black/30 backdrop-blur-sm z-50">
+      <div className="w-96 bg-white dark:bg-siena-darkGreen text-siena-darkGreen dark:text-siena-gold p-6 shadow-2xl overflow-y-auto transition-transform duration-300">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-display">{title}</h2>
           <button
             onClick={onClose}
-            className="text-siena-darkGreen dark:text-siena-gold hover:opacity-80"
+            className="text-gray-500 hover:text-siena-green dark:hover:text-siena-gold"
           >
             ✕
           </button>
-        </header>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">{children}</div>
-
-        {/* Footer */}
-        <footer className="mt-6 flex justify-end gap-3 pt-3 border-t border-siena-green/30">
+        </div>
+        <div className="space-y-4">{children}</div>
+        <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-3 py-1 border border-siena-green text-siena-green dark:border-siena-gold dark:text-siena-gold rounded hover:bg-siena-green hover:text-siena-white transition"
+            className="px-3 py-1 rounded border border-gray-400 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-siena-green/20"
           >
             Cancel
           </button>
@@ -72,7 +41,7 @@ export default function DrawerWrapper({
           >
             Save
           </button>
-        </footer>
+        </div>
       </div>
     </div>
   );

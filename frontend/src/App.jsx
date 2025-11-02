@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 
 export default function App() {
   useEffect(() => {
@@ -51,6 +52,25 @@ export default function App() {
       <main className="flex-1 bg-white dark:bg-siena-bg text-siena-darkGreen dark:text-siena-gold p-6">
         <Outlet />
       </main>
+      <Toaster
+  position="bottom-right"
+  toastOptions={{
+    style: {
+      background: "#1B4932", // Siena dark green
+      color: "#fff",
+      fontFamily: "Gudea, sans-serif",
+      borderRadius: "8px",
+    },
+    success: {
+      style: { background: "#006B54", color: "#fff" },
+      iconTheme: { primary: "#FCC917", secondary: "#fff" },
+    },
+    error: {
+      style: { background: "#B91C1C", color: "#fff" },
+      iconTheme: { primary: "#FCC917", secondary: "#fff" },
+    },
+  }}
+/>
     </div>
   );
 }

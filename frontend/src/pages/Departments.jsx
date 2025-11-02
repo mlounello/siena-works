@@ -1,29 +1,17 @@
-import { useEffect, useState } from 'react'
-import supabase from '../supabaseClient'
-import { colors } from '../theme'
+import DataManager from "../components/ui/DataManager";
 
 export default function Departments() {
-  const [departments, setDepartments] = useState([])
-
-  useEffect(() => {
-    const loadDepartments = async () => {
-      const { data, error } = await supabase.from('departments').select('*').order('code')
-      if (error) console.error('Error:', error)
-      else setDepartments(data)
-    }
-    loadDepartments()
-  }, [])
-
   return (
-    <div>
-      <h1 style={{ color: colors.green, fontFamily: 'Merriweather' }}>Departments</h1>
-      <ul>
-        {departments.map((dept) => (
-          <li key={dept.id}>
-            <strong>{dept.code}</strong> – {dept.friendly_name}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+    <DataManager
+      title="Departments"
+      table="departments"
+      idField="id"
+      columns={[
+        { key: "code", label: "Department Code", type: "text", required: true },
+        { key: "friendly_name", label: "Friendly Name", type: "text", required: true },
+      ]}
+      searchKeys={["code", "friendly_name"]}
+      defaultSortKey="friendly_name"
+    />
+  );
 }
