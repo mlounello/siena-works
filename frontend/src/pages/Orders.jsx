@@ -214,43 +214,30 @@ export default function Orders() {
       account_code_id: editedOrder.account_code_id || selectedOrder?.account_code_id || null,
     };
 
-    const loadingToast = toast.loading(editedOrder.id ? "Saving changes..." : "Creating order...");
+    const loadingToast = toast.loading(
+      editedOrder.id ? "Saving changes..." : "Creating order..."
+    );
+
     try {
       if (editedOrder.id) {
-        const { error } = await supabase.from("orders").update(payload).eq("id", editedOrder.id);
+        const { data: updatedOrder, error } = await supabase
+          .from("orders")
+          .update(payload)
+          .eq("id", editedOrder.id)
+          .select(`
+            *,
+            vendor:vendors(id,name),
+            department:departments(id,code,friendly_name),
+            account:accounts(id,code,friendly_name)
+          `)
+          .single();
+
         if (error) throw error;
 
-        // Rebuild the display relationships from local lookups so table stays populated
-        const newVendor =
-          vendors.find((v) => v.id === payload.vendor_id) ||
-          selectedOrder?.vendor ||
-          null;
-        const newDept =
-          departments.find((d) => d.id === payload.department_id) ||
-          selectedOrder?.department ||
-          null;
-        const newAcct =
-          accounts.find((a) => a.id === payload.account_code_id) ||
-          selectedOrder?.account ||
-          null;
-
         setOrders((prev) =>
-          prev.map((o) =>
-            o.id === editedOrder.id
-              ? {
-                  ...o,
-                  ...payload,
-                  vendor: newVendor ? { id: newVendor.id, name: newVendor.name } : null,
-                  department: newDept
-                    ? { id: newDept.id, code: newDept.code, friendly_name: newDept.friendly_name }
-                    : null,
-                  account: newAcct
-                    ? { id: newAcct.id, code: newAcct.code, friendly_name: newAcct.friendly_name }
-                    : null,
-                }
-              : o
-          )
+          prev.map((o) => (o.id === editedOrder.id ? updatedOrder : o))
         );
+
         toast.success("Order updated successfully!", { id: loadingToast });
       } else {
         const { data, error } = await supabase
@@ -262,10 +249,13 @@ export default function Orders() {
             department:departments(id,code,friendly_name),
             account:accounts(id,code,friendly_name)
           `);
+
         if (error) throw error;
-        setOrders((p) => [data[0], ...p]);
+
+        setOrders((prev) => [data[0], ...prev]);
         toast.success("Order created successfully!", { id: loadingToast });
       }
+
       setDrawerOpen(false);
     } catch (err) {
       console.error(err);
