@@ -112,6 +112,16 @@ export default function AdminDashboard() {
         }),
       });
 
+      await supabase.auth.admin.updateUserById(selectedUser.id, {
+        app_metadata: {
+          departments: selectedDepartments,
+          accounts: selectedAccounts,
+          is_admin: selectedUserAdmin
+        }
+      });
+
+      await supabase.auth.refreshSession();
+
       alert("User access updated!");
       await loadData();
     } catch (err) {
