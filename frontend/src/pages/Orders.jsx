@@ -49,45 +49,77 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editedOrder, setEditedOrder] = useState({});
 
+  // Debug: session info
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) console.error("Error fetching session:", error);
+      else console.log("Supabase session:", data?.session);
+    };
+    fetchSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", _event, session);
+    });
+    return () => listener?.subscription.unsubscribe();
+  }, []);
+
+  // Load data
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [
-          { data: orderData },
-          { data: vendorData },
-          { data: deptData },
-          { data: acctData },
-        ] = await Promise.all([
-          supabase
-            .from("orders")
-            .select(`
-              id,
-              requisition_number,
-              po_number,
-              order_value,
-              status,
-              created_at,
-              vendor:vendor_id(id, name),
-              account:account_code_id(id, code, friendly_name),
-              department:department_id(id, code, friendly_name)
-            `)
-            .order("created_at", { ascending: false }),
-          supabase.from("vendors").select("id, name").order("name"),
-          supabase.from("departments").select("id, code, friendly_name").order("friendly_name"),
-          supabase.from("accounts").select("id, code, friendly_name").order("friendly_name"),
+        const session = await supabase.auth.getSession();
+        const token = session?.data?.session?.access_token;
+        if (!token) throw new Error("Not authenticated");
+
+        const [ordersRes, vendorsRes, deptsRes, acctsRes] = await Promise.all([
+          fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/orders?select=id,requisition_number,po_number,order_value,status,created_at,vendor_id,vendor:vendors(id,name),department_id,department:departments(id,code,friendly_name),account_code_id,account:accounts(id,code,friendly_name)&order=created_at.desc&limit=50`,
+            {
+              headers: {
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/vendors?select=id,name&order=name`, {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/departments?select=id,code,friendly_name&order=friendly_name`, {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/accounts?select=id,code,friendly_name&order=friendly_name`, {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
 
-        setOrders(orderData || []);
-        setVendors(vendorData || []);
-        setDepartments(deptData || []);
-        setAccounts(acctData || []);
+        const orderData = await ordersRes.json();
+        const vendorData = await vendorsRes.json();
+        const deptData = await deptsRes.json();
+        const acctData = await acctsRes.json();
+
+        setOrders(Array.isArray(orderData) ? orderData : []);
+        setVendors(Array.isArray(vendorData) ? vendorData : []);
+        setDepartments(Array.isArray(deptData) ? deptData : []);
+        setAccounts(Array.isArray(acctData) ? acctData : []);
       } catch (err) {
-        console.error(err);
+        console.error("Orders component crashed:", err);
+        toast.error("Failed to load data");
         setError("Failed to load data");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, []);
@@ -106,7 +138,6 @@ export default function Orders() {
         deptName.toLowerCase().includes(needle) ||
         acct.toLowerCase().includes(needle) ||
         (o.status || "").toLowerCase().includes(needle);
-
       const matchesDept = !filterDept || deptName === filterDept;
       const matchesVendor = !filterVendor || vendorName === filterVendor;
       const matchesStatus = !filterStatus || o.status === filterStatus;
@@ -135,9 +166,8 @@ export default function Orders() {
   }, [filtered, sortKey, sortDir]);
 
   const setSort = (key) => {
-    if (key === sortKey) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
       setSortKey(key);
       setSortDir("asc");
     }
@@ -150,11 +180,11 @@ export default function Orders() {
         id: order.id,
         requisition_number: order.requisition_number || "",
         po_number: order.po_number || "",
-        order_value: order.order_value || "",
+        order_value: order.order_value ?? "",
         status: order.status || "Requested",
-        vendor_id: order.vendor?.id || "",
-        department_id: order.department?.id || "",
-        account_code_id: order.account?.id || "",
+        vendor_id: order.vendor_id || order.vendor?.id || "",
+        department_id: order.department_id || order.department?.id || "",
+        account_code_id: order.account_code_id || order.account?.id || "",
       });
     } else {
       setSelectedOrder(null);
@@ -173,39 +203,79 @@ export default function Orders() {
 
   const saveOrder = async () => {
     if (!editedOrder) return;
+
     const payload = {
       requisition_number: editedOrder.requisition_number?.trim() || null,
       po_number: editedOrder.po_number?.trim() || null,
       order_value: Number(editedOrder.order_value) || 0,
       status: editedOrder.status || "Requested",
-      vendor_id: editedOrder.vendor_id || null,
-      department_id: editedOrder.department_id || null,
-      account_code_id: editedOrder.account_code_id || null,
+      vendor_id: editedOrder.vendor_id || selectedOrder?.vendor_id || null,
+      department_id: editedOrder.department_id || selectedOrder?.department_id || null,
+      account_code_id: editedOrder.account_code_id || selectedOrder?.account_code_id || null,
     };
+
     const loadingToast = toast.loading(editedOrder.id ? "Saving changes..." : "Creating order...");
     try {
       if (editedOrder.id) {
         const { error } = await supabase.from("orders").update(payload).eq("id", editedOrder.id);
         if (error) throw error;
-        setOrders((p) => p.map((o) => (o.id === editedOrder.id ? { ...o, ...payload } : o)));
+
+        // Rebuild the display relationships from local lookups so table stays populated
+        const newVendor =
+          vendors.find((v) => v.id === payload.vendor_id) ||
+          selectedOrder?.vendor ||
+          null;
+        const newDept =
+          departments.find((d) => d.id === payload.department_id) ||
+          selectedOrder?.department ||
+          null;
+        const newAcct =
+          accounts.find((a) => a.id === payload.account_code_id) ||
+          selectedOrder?.account ||
+          null;
+
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === editedOrder.id
+              ? {
+                  ...o,
+                  ...payload,
+                  vendor: newVendor ? { id: newVendor.id, name: newVendor.name } : null,
+                  department: newDept
+                    ? { id: newDept.id, code: newDept.code, friendly_name: newDept.friendly_name }
+                    : null,
+                  account: newAcct
+                    ? { id: newAcct.id, code: newAcct.code, friendly_name: newAcct.friendly_name }
+                    : null,
+                }
+              : o
+          )
+        );
         toast.success("Order updated successfully!", { id: loadingToast });
       } else {
-        const { data, error } = await supabase.from("orders").insert([payload]).select().single();
+        const { data, error } = await supabase
+          .from("orders")
+          .insert(payload)
+          .select(`
+            *,
+            vendor:vendors(id,name),
+            department:departments(id,code,friendly_name),
+            account:accounts(id,code,friendly_name)
+          `);
         if (error) throw error;
-        setOrders((p) => [data, ...p]);
+        setOrders((p) => [data[0], ...p]);
         toast.success("Order created successfully!", { id: loadingToast });
       }
       setDrawerOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save order.", { id: loadingToast });
+      toast.error(err?.message || "Failed to save order.", { id: loadingToast });
     }
   };
 
   const deleteOrder = async () => {
     if (!selectedOrder?.id) return;
-    const confirmDelete = window.confirm(`Are you sure you want to delete this order?`);
-    if (!confirmDelete) return;
+    if (!window.confirm("Are you sure you want to delete this order?")) return;
 
     const loadingToast = toast.loading("Deleting order...");
     try {
@@ -296,7 +366,12 @@ export default function Orders() {
       </div>
 
       {/* Drawer */}
-      <DrawerWrapper title={selectedOrder ? `Edit Order ${selectedOrder.po_number || ""}` : "New Order"} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} onSave={saveOrder}>
+      <DrawerWrapper
+        title={selectedOrder ? `Edit Order ${selectedOrder.po_number || ""}` : "New Order"}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSave={saveOrder}
+      >
         {editedOrder ? (
           <div className="space-y-4">
             <Input label="Requisition #" field="requisition_number" type="text" val={editedOrder} setVal={setEditedOrder} />
@@ -312,7 +387,9 @@ export default function Orders() {
               </button>
             )}
           </div>
-        ) : <p>No order selected.</p>}
+        ) : (
+          <p>No order selected.</p>
+        )}
       </DrawerWrapper>
     </div>
   );
@@ -323,12 +400,8 @@ function Th({ label, sortKey, activeKey, sortDir, setSort, right }) {
   return (
     <th
       onClick={() => setSort(sortKey)}
-      className={`p-2 cursor-pointer select-none ${
-        right ? "text-right" : "text-left"
-      } ${
-        active
-          ? "text-siena-green font-semibold"
-          : "text-gray-700 dark:text-siena-gold"
+      className={`p-2 cursor-pointer select-none ${right ? "text-right" : "text-left"} ${
+        active ? "text-siena-green font-semibold" : "text-gray-700 dark:text-siena-gold"
       }`}
     >
       {label} {active ? (sortDir === "asc" ? "▲" : "▼") : ""}
@@ -347,7 +420,7 @@ const Input = ({ label, field, type, val, setVal }) => (
     <label className="block text-sm font-medium mb-1">{label}</label>
     <input
       type={type}
-      value={val[field] || ""}
+      value={String(val[field] ?? "")}
       onChange={(e) => setVal((p) => ({ ...p, [field]: e.target.value }))}
       className="border p-2 w-full rounded dark:bg-siena-darkGreen/30 dark:text-siena-gold"
     />
@@ -358,13 +431,15 @@ const Select = ({ label, field, opts, val, setVal, dKey, fKey }) => (
   <div>
     <label className="block text-sm font-medium mb-1">{label}</label>
     <select
-      value={val[field] || ""}
+      value={String(val[field] ?? "")}
       onChange={(e) => setVal((p) => ({ ...p, [field]: e.target.value }))}
       className="border p-2 w-full rounded dark:bg-siena-darkGreen/30 dark:text-siena-gold"
     >
       <option value="">Select {label}</option>
       {opts.map((o) => (
-        <option key={o.id || o} value={o.id || o}>{o[dKey] || o[fKey] || o}</option>
+        <option key={o.id || o} value={o.id || o}>
+          {o[dKey] || o[fKey] || o}
+        </option>
       ))}
     </select>
   </div>
