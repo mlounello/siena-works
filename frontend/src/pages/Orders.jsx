@@ -42,12 +42,15 @@ export default function Orders() {
   const [filterDept, setFilterDept] = useState("");
   const [filterVendor, setFilterVendor] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [sortKey, setSortKey] = useState("created_at");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortKey, setSortKey] = useState("po_number");
+  const [sortDir, setSortDir] = useState("asc");
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editedOrder, setEditedOrder] = useState({});
+
+  // Track admin status
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Debug: session info
   useEffect(() => {
@@ -62,6 +65,29 @@ export default function Orders() {
       console.log("Auth state changed:", _event, session);
     });
     return () => listener?.subscription.unsubscribe();
+  }, []);
+
+  // Fetch isAdmin from profiles
+  useEffect(() => {
+    const fetchIsAdmin = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("isAdmin")
+        .eq("id", userId)
+        .single();
+      if (error) {
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(!!data?.isAdmin);
+      }
+    };
+    fetchIsAdmin();
   }, []);
 
   // Load data
@@ -380,7 +406,15 @@ export default function Orders() {
             <Select label="Department" field="department_id" opts={departments} val={editedOrder} setVal={setEditedOrder} dKey="friendly_name" fKey="code" />
             <Select label="Account" field="account_code_id" opts={accounts} val={editedOrder} setVal={setEditedOrder} dKey="friendly_name" fKey="code" />
             <Input label="Amount" field="order_value" type="number" val={editedOrder} setVal={setEditedOrder} />
-            <Select label="Status" field="status" opts={STATUSES.map((s) => ({ id: s, name: s }))} val={editedOrder} setVal={setEditedOrder} dKey="name" />
+            <Select
+              label="Status"
+              field="status"
+              opts={STATUSES.map((s) => ({ id: s, name: s }))}
+              val={editedOrder}
+              setVal={setEditedOrder}
+              dKey="name"
+              disabled={!isAdmin}
+            />
             {selectedOrder && (
               <button onClick={deleteOrder} className="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 w-full mt-4">
                 Delete Order
@@ -427,13 +461,16 @@ const Input = ({ label, field, type, val, setVal }) => (
   </div>
 );
 
-const Select = ({ label, field, opts, val, setVal, dKey, fKey }) => (
+const Select = ({ label, field, opts, val, setVal, dKey, fKey, disabled }) => (
   <div>
     <label className="block text-sm font-medium mb-1">{label}</label>
     <select
       value={String(val[field] ?? "")}
       onChange={(e) => setVal((p) => ({ ...p, [field]: e.target.value }))}
-      className="border p-2 w-full rounded dark:bg-siena-darkGreen/30 dark:text-siena-gold"
+      disabled={!!disabled}
+      className={`border p-2 w-full rounded dark:bg-siena-darkGreen/30 dark:text-siena-gold
+        ${disabled ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-siena-darkGreen/10" : ""}
+      `}
     >
       <option value="">Select {label}</option>
       {opts.map((o) => (
