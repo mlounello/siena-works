@@ -77,10 +77,15 @@ export default function Orders() {
         return;
       }
       const { data, error } = await supabase
-        .from("profiles")
-        .select("isAdmin")
-        .eq("id", userId)
-        .single();
+  .from("profiles")
+  .select("is_admin")
+  .eq("id", userId)
+  .single();
+if (error) {
+  setIsAdmin(false);
+} else {
+  setIsAdmin(!!data?.is_admin);
+}
       if (error) {
         setIsAdmin(false);
       } else {
@@ -231,15 +236,14 @@ export default function Orders() {
     if (!editedOrder) return;
 
     const payload = {
-      requisition_number: editedOrder.requisition_number?.trim() || null,
-      po_number: editedOrder.po_number?.trim() || null,
-      order_value: Number(editedOrder.order_value) || 0,
-      status: editedOrder.status || "Requested",
-      vendor_id: editedOrder.vendor_id || selectedOrder?.vendor_id || null,
-      department_id: editedOrder.department_id || selectedOrder?.department_id || null,
-      account_code_id: editedOrder.account_code_id || selectedOrder?.account_code_id || null,
-    };
-
+  requisition_number: editedOrder.requisition_number?.trim() || null,
+  po_number: editedOrder.po_number?.trim() || null,
+  order_value: Number(editedOrder.order_value) || 0,
+  status: isAdmin ? editedOrder.status || "Requested" : "Requested",
+  vendor_id: editedOrder.vendor_id || selectedOrder?.vendor_id || null,
+  department_id: editedOrder.department_id || selectedOrder?.department_id || null,
+  account_code_id: editedOrder.account_code_id || selectedOrder?.account_code_id || null,
+};
     const loadingToast = toast.loading(editedOrder.id ? "Saving changes..." : "Creating order...");
     try {
       if (editedOrder.id) {
