@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- Environment and Secrets ---
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Backend and Frontend specific
+backend/.env
+backend/.env.local
+frontend/.env
+frontend/.env.local
+
+# Supabase keys, service accounts, and credentials
+supabase/config.json
+supabase/.env
+*.serviceAccount.json
+*.key.json
