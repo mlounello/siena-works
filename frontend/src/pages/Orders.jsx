@@ -77,19 +77,15 @@ export default function Orders() {
         return;
       }
       const { data, error } = await supabase
-  .from("profiles")
-  .select("is_admin")
-  .eq("id", userId)
-  .single();
-if (error) {
-  setIsAdmin(false);
-} else {
-  setIsAdmin(!!data?.is_admin);
-}
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .single();
       if (error) {
+        console.error("Error fetching admin status:", error);
         setIsAdmin(false);
       } else {
-        setIsAdmin(!!data?.isAdmin);
+        setIsAdmin(!!data?.is_admin);
       }
     };
     fetchIsAdmin();
