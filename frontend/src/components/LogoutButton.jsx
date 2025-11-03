@@ -3,7 +3,7 @@ import supabase from "../supabaseClient";
 export default function LogoutButton() {
   const logout = async () => {
     await supabase.auth.signOut();
-    window.location.reload();
+    window.location.href = "/";
   };
 
   return (
